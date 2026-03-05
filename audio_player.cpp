@@ -91,7 +91,7 @@ bool AudioPlayer::play(int deviceIndex) {
         return false;
     }
 
-    outputParams.channelCount              = 2;
+    outputParams.channelCount              = state.numChannels;
     outputParams.sampleFormat              = paFloat32;
     outputParams.suggestedLatency          =
         Pa_GetDeviceInfo(outputParams.device)->defaultLowOutputLatency;
@@ -204,15 +204,26 @@ int AudioPlayer::audioCallback(const void* inputBuffer,
     // fill output buffer frame by frame
     // one frame = numChannels samples (e.g. stereo = 2 floats)
     for (unsigned long frame = 0; frame < framesPerBuffer; frame++) {
-        for (int ch = 0; ch < state->numChannels; ch++) {
-            size_t idx = playhead + frame * state->numChannels + ch;
 
-            if (idx >= state->samples.size()) {
-                *out++ = 0.0f; // past end of file - output silence
-                continue;
-            }
+        if (state->numChannels == 1) {
+        // mono source - duplicate to both L and R
+        size_t idx = playhead + frame;
+        float sample = (idx < state->samples.size()) ? state->samples[idx] : 0.0f;
 
-            float sample = state->samples[idx];
+        if (lpEnabled) sample = state->lowPassFilter[0].process(sample);
+        if (hpEnabled) sample = state->highPassFilter[0].process(sample);
+        sample *= volume;
+
+        *out++ = sample; // left
+        *out++ = sample; // right
+
+        } 
+        else {
+
+        // stereo source - process each channel independently
+        for (int ch = 0; ch < 2; ch++) {
+            size_t idx = playhead + frame * 2 + ch;
+            float sample = (idx < state->samples.size()) ? state->samples[idx] : 0.0f;
 
             if (lpEnabled) sample = state->lowPassFilter[ch].process(sample);
             if (hpEnabled) sample = state->highPassFilter[ch].process(sample);
@@ -221,6 +232,7 @@ int AudioPlayer::audioCallback(const void* inputBuffer,
             *out++ = sample;
         }
     }
+}
 
     // advance playhead by the samples we just consumed
     size_t newPlayhead = playhead + framesPerBuffer * state->numChannels;
