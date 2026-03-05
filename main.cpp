@@ -174,21 +174,21 @@ int main(int argc, char* argv[]) {
 //     }
 
 //     //! testing filters
-//     //TEST 1: low pass at 500 Hz - should sound muffled, bass only
-//     //calculate the coefficients
-//     //Coeffs c = lowPassCoeffs(500.0f, sampleRate);
+    //TEST 1: low pass at 500 Hz - should sound muffled, bass only
+    //calculate the coefficients
+    //Coeffs c = lowPassCoeffs(500.0f, sampleRate);
 
-//     //TEST 2: high pass at 2000 Hz - should sound tinny, highs only
-//     //Coeffs c = highPassCoeffs(2000.0f, sampleRate);
+    //TEST 2: high pass at 2000 Hz - should sound tinny, highs only
+    //Coeffs c = highPassCoeffs(2000.0f, sampleRate);
 
 
-//     //apply the coefficients
-//     //applyFilter(samples, numChannels, c);
-//     //TEST 3: reverb
-//     applyReverb(samples, numChannels, sampleRate);  
+    //apply the coefficients
+    //applyFilter(samples, numChannels, c);
+    //TEST 3: reverb
+    //applyReverb(samples, numChannels, sampleRate);  
 
-//     // TEST 5: volume - try 0.2f (quiet) or 1.0f (unchanged)
-//     // applyVolume(samples, 0.5f);
+    // TEST 5: volume - try 0.2f (quiet) or 1.0f (unchanged)
+    // applyVolume(samples, 0.5f);
 
 //     if (!writeWav(outputPath, samples, sampleRate, numChannels)) {
 //         return 1;

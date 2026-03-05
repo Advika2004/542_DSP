@@ -91,7 +91,7 @@ bool AudioPlayer::play(int deviceIndex) {
         return false;
     }
 
-    outputParams.channelCount              = state.numChannels;
+    outputParams.channelCount              = 2;
     outputParams.sampleFormat              = paFloat32;
     outputParams.suggestedLatency          =
         Pa_GetDeviceInfo(outputParams.device)->defaultLowOutputLatency;
