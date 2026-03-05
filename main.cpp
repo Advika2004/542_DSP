@@ -137,7 +137,7 @@ int main(int argc, char* argv[]) {
 
     // start playback - pass USB device index here if not using default
     // e.g. player.play(2) if your USB adapter shows as [2]
-    if (!player.play()) {
+    if (!player.play(1)) {
         return 1;
     }
 
