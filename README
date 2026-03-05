@@ -1,0 +1,72 @@
+PERSONAL NOTES:
+
+
+SD card reading: 
+- Pi 5 already has that so its chill to do that 
+- Use regular c++ file system commands to access stuff on sd card
+- How do I know where the sd card has mounted?
+- Do I need to use FATFS? 
+
+Audio Files: 
+- Audio files will be .WAV (PCM + header)
+- PCM (pulse code modulation)
+- Numbers that represent the samples over time
+- Header
+- Format of file
+- Sampling rate of audio
+- Bit width of each sample
+- Number of channels
+- libsndfile library
+- C library for reading / writing audio files
+- Takes many different audio file formats and is able to read them and save data from them all
+
+
+Playing it out loud:
+- Need to get audio out of speakers
+- Would need to use a standard linux audio layer
+- PortAudio
+- Allows you to output audio onto the pi audio headphone jack
+
+Actual Audio Filters:
+- Volume Up - arm up
+- Volume down - arm down
+- Cut the bass - (high pass)
+- Cut the treble (low pass)
+- Reverb (comb)
+
+For the interface:
+- Dear ImGui
+
+Architecture:
+- Just have both programs act as separate programs
+- They have shared memory
+- Detecting a hand signal triggers calling a function
+
+Files:
+
+─ main.cpp (init everything, start the GUI)
+─ audio_player.h / audio_player.cpp (portaudio and libsndfile) (gets samples & plays them)
+─ dsp.h / dsp.cpp (take in floats, output other floats)
+─ Makefile
+
+
+Questions??
+- why are we using biquad filters???
+    - because those are a good flexibility 
+    - computational cost
+    - stability 
+    - easy to implement 
+    - thats how plug ins work
+
+First steps:
+1. Make sure I can put take .WAV files out of the sd card, and play them
+    - 
+2. Make sure I can read an input wav file (just an array of floats) and apply the filter 
+    - first write the different filter functions
+    - call them on an array of floats 
+    - play it out of a speakers
+
+
+
+
+
