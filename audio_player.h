@@ -19,6 +19,7 @@ struct AudioState {
     std::vector<float> samples;     // entire WAV in memory as interleaved floats
     int numChannels = 0;
     int sampleRate  = 0;
+    int outChannels = 2;
 
     std::atomic<size_t> playhead{0}; // current position in samples[]
 

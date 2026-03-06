@@ -90,8 +90,8 @@ bool AudioPlayer::play(int deviceIndex) {
         std::cerr << "ERROR: no output device found\n";
         return false;
     }
-
-    outputParams.channelCount              = state.numChannels;
+    state.outChannels = 2;
+    outputParams.channelCount              = state.outChannels;
     outputParams.sampleFormat              = paFloat32;
     outputParams.suggestedLatency          =
         Pa_GetDeviceInfo(outputParams.device)->defaultLowOutputLatency;
@@ -203,37 +203,42 @@ int AudioPlayer::audioCallback(const void* inputBuffer,
 
     // fill output buffer frame by frame
     // one frame = numChannels samples (e.g. stereo = 2 floats)
-    for (unsigned long frame = 0; frame < framesPerBuffer; frame++) {
+    for (unsigned long frame = 0; frame < framesPerBuffer; ++frame) {
+    	float inL = 0.0f, inR = 0.0f;
 
-        if (state->numChannels == 1) {
-        // mono source - duplicate to both L and R
-        size_t idx = playhead + frame;
-        float sample = (idx < state->samples.size()) ? state->samples[idx] : 0.0f;
-
-        if (lpEnabled) sample = state->lowPassFilter[0].process(sample);
-        if (hpEnabled) sample = state->highPassFilter[0].process(sample);
-        sample *= volume;
-
-        *out++ = sample; // left
-        *out++ = sample; // right
-
-        } 
-        else {
-
-        // stereo source - process each channel independently
-        for (int ch = 0; ch < 2; ch++) {
-            size_t idx = playhead + frame * 2 + ch;
-            float sample = (idx < state->samples.size()) ? state->samples[idx] : 0.0f;
-
-            if (lpEnabled) sample = state->lowPassFilter[ch].process(sample);
-            if (hpEnabled) sample = state->highPassFilter[ch].process(sample);
-            sample *= volume;
-
-            *out++ = sample;
+    	if (state->numChannels == 1) {
+            size_t idx = playhead + frame; // mono file
+            float s = (idx < state->samples.size()) ? state->samples[idx] : 0.0f;
+            inL = inR = s; // upmix
+    	} else {
+            size_t idxL = playhead + frame * state->numChannels + 0;
+            size_t idxR = playhead + frame * state->numChannels + 1;
+            inL = (idxL < state->samples.size()) ? state->samples[idxL] : 0.0f;
+            inR = (idxR < state->samples.size()) ? state->samples[idxR] : 0.0f;
         }
-    }
-}
 
+        float outL = inL;
+    	float outR = inR;
+
+    	if (lpEnabled) {
+            outL = state->lowPassFilter[0].process(outL);
+            outR = state->lowPassFilter[1].process(outR);
+     	}
+    	if (hpEnabled) {
+            outL = state->highPassFilter[0].process(outL);
+            outR = state->highPassFilter[1].process(outR);
+	}
+
+   	outL *= volume;
+        outR *= volume;
+
+   	// optional but good: clamp to avoid clipping
+   	outL = std::max(-1.0f, std::min(1.0f, outL));
+   	outR = std::max(-1.0f, std::min(1.0f, outR));
+
+    	*out++ = outL;
+    	*out++ = outR;
+    }
     // advance playhead by the samples we just consumed
     size_t newPlayhead = playhead + framesPerBuffer * state->numChannels;
     state->playhead.store(newPlayhead);

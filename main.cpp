@@ -132,12 +132,12 @@ int main(int argc, char* argv[]) {
     // later these get called by your partner's gesture code
     // ─────────────────────────────────────────────
     player.setVolume(0.8f);
-    player.setLowPass(false, 500.0f);    // true = cut treble, keep bass
+    player.setLowPass(true, 400.0f);    // true = cut treble, keep bass
     player.setHighPass(false, 2000.0f);  // true = cut bass, keep treble
 
     // start playback - pass USB device index here if not using default
     // e.g. player.play(2) if your USB adapter shows as [2]
-    if (!player.play(1)) {
+    if (!player.play(-1)) {
         return 1;
     }
 
