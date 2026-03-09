@@ -34,6 +34,12 @@ struct AudioState {
     // filter instances - one per channel, state persists across callbacks
     BiquadFilter lowPassFilter[2];
     BiquadFilter highPassFilter[2];
+
+    std::atomic<bool>  reverbEnabled{false};
+    std::atomic<float> reverbWet{0.3f};
+    std::atomic<float> reverbDry{0.7f};
+
+    SchroederReverb* reverb[2] = {nullptr, nullptr};
 };
 
 // ─────────────────────────────────────────────
@@ -70,6 +76,7 @@ public:
     void setVolume(float volume);                  // 0.0 to 1.0
     void setLowPass(bool enabled, float cutoffHz); // cut treble
     void setHighPass(bool enabled, float cutoffHz);// cut bass
+    void setReverb(bool enabled, float wet = 0.3f, float dry = 0.7f);
 
     // direct access to state for your partner's gesture code
     // they can call player.state.volume.store(newVal) directly

@@ -15,6 +15,12 @@ AudioPlayer::AudioPlayer() : stream(nullptr) {
 
 AudioPlayer::~AudioPlayer() {
     stop();
+    for (int ch = 0; ch < 2; ch++) {
+    if (state.reverb[ch] != nullptr) {
+        delete state.reverb[ch];
+        state.reverb[ch] = nullptr;
+        }
+    }
     Pa_Terminate();
 }
 
@@ -35,6 +41,17 @@ bool AudioPlayer::loadFile(const std::string& path) {
     state.sampleRate  = info.samplerate;
     state.numChannels = info.channels;
     state.playhead.store(0); // reset playhead for new file
+
+    for (int ch = 0; ch < 2; ch++) {
+    if (state.reverb[ch] != nullptr) {
+        delete state.reverb[ch];
+        state.reverb[ch] = nullptr;
+        }
+    }
+
+    for (int ch = 0; ch < state.numChannels && ch < 2; ch++) {
+        state.reverb[ch] = new SchroederReverb(state.sampleRate);
+    }
 
     sf_count_t totalSamples = info.frames * info.channels;
     state.samples.resize(totalSamples);
@@ -91,7 +108,9 @@ bool AudioPlayer::play(int deviceIndex) {
         return false;
     }
 
-    outputParams.channelCount              = state.numChannels;
+    //!outputParams.channelCount              = state.numChannels;
+    //apparently that is unsafe if we have mono it forces it as stereo so just going to set to 2
+    outputParams.channelCount              = 2;
     outputParams.sampleFormat              = paFloat32;
     outputParams.suggestedLatency          =
         Pa_GetDeviceInfo(outputParams.device)->defaultLowOutputLatency;
@@ -166,27 +185,32 @@ void AudioPlayer::setHighPass(bool enabled, float cutoffHz) {
     state.highPassCutoff.store(cutoffHz);
 }
 
+void AudioPlayer::setReverb(bool enabled, float wet, float dry) {
+    state.reverbEnabled.store(enabled);
+    state.reverbWet.store(wet);
+    state.reverbDry.store(dry);
+}
+
 // ─────────────────────────────────────────────
 // audioCallback
 // called by PortAudio every ~5ms on its own thread
 // fills framesPerBuffer frames into the output buffer
 // NO malloc, no printf, no file I/O in here - just fast math
 // ─────────────────────────────────────────────
-int AudioPlayer::audioCallback(const void* inputBuffer,
-                                void* outputBuffer,
-                                unsigned long framesPerBuffer,
-                                const PaStreamCallbackTimeInfo* timeInfo,
-                                PaStreamCallbackFlags statusFlags,
-                                void* userData)
+int AudioPlayer::audioCallback(const void* inputBuffer, void* outputBuffer, unsigned long framesPerBuffer, const PaStreamCallbackTimeInfo* timeInfo, PaStreamCallbackFlags statusFlags, void* userData)
 {
     AudioState* state = (AudioState*)userData;
     float* out = (float*)outputBuffer;
+
 
     // snapshot atomics once - cheaper than loading on every sample
     size_t playhead  = state->playhead.load();
     float  volume    = state->volume.load();
     bool   lpEnabled = state->lowPassEnabled.load();
     bool   hpEnabled = state->highPassEnabled.load();
+    bool  rvEnabled = state->reverbEnabled.load();
+    float wet       = state->reverbWet.load();
+    float dry       = state->reverbDry.load();
 
     // recompute filter coefficients if enabled
     // any cutoff change is reflected within this callback
@@ -212,6 +236,12 @@ int AudioPlayer::audioCallback(const void* inputBuffer,
 
         if (lpEnabled) sample = state->lowPassFilter[0].process(sample);
         if (hpEnabled) sample = state->highPassFilter[0].process(sample);
+
+        if (rvEnabled && state->reverb[0] != nullptr) {
+            float wetSample = state->reverb[0]->process(sample);
+            sample = dry * sample + wet * wetSample;
+        }
+
         sample *= volume;
 
         *out++ = sample; // left
@@ -227,7 +257,13 @@ int AudioPlayer::audioCallback(const void* inputBuffer,
 
             if (lpEnabled) sample = state->lowPassFilter[ch].process(sample);
             if (hpEnabled) sample = state->highPassFilter[ch].process(sample);
-            sample *= volume;
+
+            if (rvEnabled && state->reverb[ch] != nullptr) {
+                float wetSample = state->reverb[ch]->process(sample);
+                sample = dry * sample + wet * wetSample;
+            }
+
+            sample *= volume;           
 
             *out++ = sample;
         }

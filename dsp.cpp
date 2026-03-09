@@ -102,7 +102,7 @@ SchroederReverb::SchroederReverb(int sampleRate)
 , T4((int)std::lround(0.044 * sampleRate))
 , T5((int)std::lround(0.005 * sampleRate))
 , T6((int)std::lround(0.0017 * sampleRate))
-, g(0.7f)
+, g(0.92f) //will change this to increase / decrease reverb
 , g_in(0.4f)
 , g7(0.4f)
 , w1(T1 + 1)
